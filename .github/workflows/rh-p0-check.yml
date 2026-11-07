@@ -1,3 +1,4 @@
+
 name: RH-LANZ P0 Exact Check
 
 on:
@@ -7,6 +8,8 @@ on:
       - research/auto-p0
     paths:
       - '.github/workflows/rh-p0-check.yml'
+      - 'evidence/RH-LANZ-P0-REGISTRY.json'
+      - 'RH-LANZ-PROTOCOL.md'
 
 permissions:
   contents: read
@@ -20,26 +23,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Python exact arithmetic audit
+      - name: P0.2 exact rational arithmetic
         shell: bash
         run: |
           python3 - <<'PY'
           from fractions import Fraction
-
-          def check(beta, gamma):
-              beta = Fraction(beta)
-              gamma = Fraction(gamma)
-              norm = beta * beta + gamma * gamma
-              assert norm != 0
-
-              real = 1 - beta / norm
-              imag = gamma / norm
-
-              lhs = real * real + imag * imag - 1
-              rhs = (1 - 2 * beta) / norm
-
-              assert lhs == rhs
-              return lhs
 
           count = 0
           for beta in (
@@ -49,17 +37,92 @@ jobs:
               Fraction(1, 1),
           ):
               for gamma in (1, 2, 14, 100):
-                  result = check(beta, gamma)
-                  if beta == Fraction(1, 2):
-                      assert result == 0
-                  elif beta > Fraction(1, 2):
-                      assert result < 0
-                  else:
-                      assert result > 0
+                  gamma = Fraction(gamma)
+                  norm = beta**2 + gamma**2
+                  assert norm != 0
+
+                  real = 1 - beta / norm
+                  imag = gamma / norm
+
+                  lhs = real**2 + imag**2 - 1
+                  rhs = (1 - 2 * beta) / norm
+
+                  assert lhs == rhs
+                  assert (lhs == 0) == (beta == Fraction(1, 2))
+                  assert (lhs < 0) == (beta > Fraction(1, 2))
+                  assert (lhs > 0) == (beta < Fraction(1, 2))
                   count += 1
 
+          assert count == 16
           print("RH-LANZ-P0.2: PASS")
           print("Exact rational test cases:", count)
-          print("No floating-point arithmetic used.")
-          print("No RH proof claimed.")
+          PY
+
+      - name: P0.3 evidence registry audit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("evidence/RH-LANZ-P0-REGISTRY.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+
+          assert data["schema_version"] == "P0.3"
+          assert data["project"] == "RH-LANZ"
+
+          records = data["records"]
+          assert isinstance(records, list) and records
+
+          categories = {
+              "PROVED_MATH",
+              "LEAN_VERIFIED",
+              "EXACT_COMPUTATION",
+              "NUMERICAL_EVIDENCE",
+              "LITERATURE_REPORTED",
+              "CONJECTURE",
+              "FAILED",
+              "INDETERMINATE",
+          }
+
+          decisions = {"GO", "STOP", "INDETERMINATE"}
+          ids = set()
+
+          for record in records:
+              for field in (
+                  "id", "category", "decision",
+                  "statement", "scope",
+                  "evidence_path", "limitations"
+              ):
+                  assert field in record, (record.get("id"), field)
+
+              assert record["id"] not in ids
+              ids.add(record["id"])
+
+              assert record["category"] in categories
+              assert record["decision"] in decisions
+              assert isinstance(record["statement"], str)
+              assert record["statement"].strip()
+              assert isinstance(record["scope"], str)
+              assert record["scope"].strip()
+
+              evidence = Path(record["evidence_path"])
+              assert not evidence.is_absolute()
+              assert ".." not in evidence.parts
+              assert evidence.is_file(), str(evidence)
+
+              assert isinstance(record["limitations"], list)
+              assert record["limitations"]
+              assert all(
+                  isinstance(x, str) and x.strip()
+                  for x in record["limitations"]
+              )
+
+          assert "RH-LANZ-P0.1" in ids
+          assert "RH-LANZ-P0.2" in ids
+
+          print("RH-LANZ-P0.3: PASS")
+          print("Validated evidence records:", len(records))
+          print("Schema and referenced paths checked.")
+          print("Scientific claims not independently proven.")
           PY
