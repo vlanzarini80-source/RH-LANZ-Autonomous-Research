@@ -1,0 +1,65 @@
+name: RH-LANZ P0 Exact Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/auto-p0
+    paths:
+      - '.github/workflows/rh-p0-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  exact-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python exact arithmetic audit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from fractions import Fraction
+
+          def check(beta, gamma):
+              beta = Fraction(beta)
+              gamma = Fraction(gamma)
+              norm = beta * beta + gamma * gamma
+              assert norm != 0
+
+              real = 1 - beta / norm
+              imag = gamma / norm
+
+              lhs = real * real + imag * imag - 1
+              rhs = (1 - 2 * beta) / norm
+
+              assert lhs == rhs
+              return lhs
+
+          count = 0
+          for beta in (
+              Fraction(1, 4),
+              Fraction(1, 2),
+              Fraction(3, 4),
+              Fraction(1, 1),
+          ):
+              for gamma in (1, 2, 14, 100):
+                  result = check(beta, gamma)
+                  if beta == Fraction(1, 2):
+                      assert result == 0
+                  elif beta > Fraction(1, 2):
+                      assert result < 0
+                  else:
+                      assert result > 0
+                  count += 1
+
+          print("RH-LANZ-P0.2: PASS")
+          print("Exact rational test cases:", count)
+          print("No floating-point arithmetic used.")
+          print("No RH proof claimed.")
+          PY
