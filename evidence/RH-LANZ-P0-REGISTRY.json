@@ -1,0 +1,32 @@
+
+{
+  "schema_version": "P0.3",
+  "project": "RH-LANZ",
+  "records": [
+    {
+      "id": "RH-LANZ-P0.1",
+      "category": "INDETERMINATE",
+      "decision": "INDETERMINATE",
+      "statement": "A research integrity protocol has been documented.",
+      "scope": "Research governance only",
+      "evidence_path": "RH-LANZ-PROTOCOL.md",
+      "limitations": [
+        "No mathematical proof",
+        "No autonomous research agents verified"
+      ]
+    },
+    {
+      "id": "RH-LANZ-P0.2",
+      "category": "EXACT_COMPUTATION",
+      "decision": "GO",
+      "statement": "Sixteen rational test cases check the geometric identity for the map z = 1 - 1/rho.",
+      "scope": "Finite set of 16 rational inputs",
+      "evidence_path": ".github/workflows/rh-p0-check.yml",
+      "limitations": [
+        "Finite tests are not a universal proof",
+        "No proof of the Riemann Hypothesis",
+        "No Lean verification"
+      ]
+    }
+  ]
+}
