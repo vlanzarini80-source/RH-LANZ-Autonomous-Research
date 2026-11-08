@@ -30,6 +30,7 @@ jobs:
           from fractions import Fraction
 
           count = 0
+
           for beta in (
               Fraction(1, 4),
               Fraction(1, 2),
@@ -56,6 +57,7 @@ jobs:
           assert count == 16
           print("RH-LANZ-P0.2: PASS")
           print("Exact rational test cases:", count)
+          print("No RH proof claimed.")
           PY
 
       - name: P0.3 evidence registry audit
@@ -101,10 +103,10 @@ jobs:
 
               assert record["category"] in categories
               assert record["decision"] in decisions
-              assert isinstance(record["statement"], str)
-              assert record["statement"].strip()
-              assert isinstance(record["scope"], str)
-              assert record["scope"].strip()
+
+              for field in ("statement", "scope"):
+                  assert isinstance(record[field], str)
+                  assert record[field].strip()
 
               evidence = Path(record["evidence_path"])
               assert not evidence.is_absolute()
@@ -125,4 +127,144 @@ jobs:
           print("Validated evidence records:", len(records))
           print("Schema and referenced paths checked.")
           print("Scientific claims not independently proven.")
+          PY
+
+      - name: P0.4 adversarial evidence registry audit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+
+          registry = Path("evidence/RH-LANZ-P0-REGISTRY.json")
+          original_bytes = registry.read_bytes()
+          original = json.loads(original_bytes)
+
+          categories = {
+              "PROVED_MATH", "LEAN_VERIFIED",
+              "EXACT_COMPUTATION", "NUMERICAL_EVIDENCE",
+              "LITERATURE_REPORTED", "CONJECTURE",
+              "FAILED", "INDETERMINATE"
+          }
+          decisions = {"GO", "STOP", "INDETERMINATE"}
+
+          def validate(data):
+              if not isinstance(data, dict):
+                  raise ValueError("Invalid root")
+              if data.get("schema_version") != "P0.3":
+                  raise ValueError("Invalid schema")
+              if data.get("project") != "RH-LANZ":
+                  raise ValueError("Invalid project")
+
+              records = data.get("records")
+              if not isinstance(records, list) or not records:
+                  raise ValueError("Invalid records")
+
+              ids = set()
+              for r in records:
+                  if not isinstance(r, dict):
+                      raise ValueError("Invalid record")
+
+                  required = (
+                      "id", "category", "decision",
+                      "statement", "scope",
+                      "evidence_path", "limitations"
+                  )
+                  if any(k not in r for k in required):
+                      raise ValueError("Missing field")
+
+                  if not isinstance(r["id"], str) or not r["id"].strip():
+                      raise ValueError("Invalid ID")
+                  if r["id"] in ids:
+                      raise ValueError("Duplicate ID")
+                  ids.add(r["id"])
+
+                  if r["category"] not in categories:
+                      raise ValueError("Invalid category")
+                  if r["decision"] not in decisions:
+                      raise ValueError("Invalid decision")
+
+                  for key in ("statement", "scope"):
+                      if not isinstance(r[key], str) or not r[key].strip():
+                          raise ValueError("Invalid text")
+
+                  p = r["evidence_path"]
+                  if not isinstance(p, str) or not p.strip():
+                      raise ValueError("Invalid path")
+
+                  path = Path(p)
+                  if path.is_absolute() or ".." in path.parts:
+                      raise ValueError("Unsafe path")
+                  if not path.is_file():
+                      raise ValueError("Missing evidence")
+
+                  limitations = r["limitations"]
+                  if not isinstance(limitations, list) or not limitations:
+                      raise ValueError("Missing limitations")
+                  if not all(
+                      isinstance(x, str) and x.strip()
+                      for x in limitations
+                  ):
+                      raise ValueError("Invalid limitations")
+
+              if not {"RH-LANZ-P0.1", "RH-LANZ-P0.2"} <= ids:
+                  raise ValueError("Missing baseline records")
+
+          validate(original)
+
+          def mutation_test(name, mutate):
+              altered = copy.deepcopy(original)
+              mutate(altered)
+              try:
+                  validate(altered)
+              except ValueError:
+                  print("REJECTED:", name)
+                  return
+              raise AssertionError("Mutation accepted: " + name)
+
+          tests = [
+              ("duplicate ID",
+               lambda d: d["records"].append(
+                   copy.deepcopy(d["records"][0]))),
+              ("invalid category",
+               lambda d: d["records"][0].update(
+                   category="FAKE_PROOF")),
+              ("invalid decision",
+               lambda d: d["records"][0].update(
+                   decision="CERTIFIED")),
+              ("missing evidence",
+               lambda d: d["records"][0].update(
+                   evidence_path="missing.txt")),
+              ("path traversal",
+               lambda d: d["records"][0].update(
+                   evidence_path="../secret.txt")),
+              ("absolute path",
+               lambda d: d["records"][0].update(
+                   evidence_path="/etc/passwd")),
+              ("empty statement",
+               lambda d: d["records"][0].update(
+                   statement="")),
+              ("empty limitations",
+               lambda d: d["records"][0].update(
+                   limitations=[])),
+              ("missing field",
+               lambda d: d["records"][0].pop("scope")),
+              ("invalid schema",
+               lambda d: d.update(schema_version="FAKE")),
+              ("missing baseline record",
+               lambda d: d["records"].pop()),
+              ("invalid record type",
+               lambda d: d["records"].__setitem__(0, None)),
+          ]
+
+          for name, mutate in tests:
+              mutation_test(name, mutate)
+
+          assert registry.read_bytes() == original_bytes
+
+          print("RH-LANZ-P0.4: PASS")
+          print("Adversarial mutations rejected:", len(tests))
+          print("Original registry unchanged.")
+          print("Scientific authenticity not verified.")
           PY
