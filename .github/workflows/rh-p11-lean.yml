@@ -1,0 +1,83 @@
+
+name: RH-LANZ P1.1 Lean Verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/auto-p0
+    paths:
+      - 'lean/RHLanz/P11ExactExponent.lean'
+      - 'lean-toolchain'
+      - 'lakefile.toml'
+      - 'lake-manifest.json'
+      - '.github/workflows/rh-p11-lean.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  lean-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install elan
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --tlsv1.2 -sSf \
+            https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Record Lean version
+        run: |
+          set -euo pipefail
+          lean --version
+          lake --version
+
+      - name: Resolve dependencies
+        run: |
+          set -euo pipefail
+          lake update
+          lake exe cache get
+
+      - name: Record Mathlib revision
+        run: |
+          set -euo pipefail
+          git -C .lake/packages/mathlib rev-parse HEAD
+          git -C .lake/packages/mathlib status --short
+
+      - name: Compile P1.1-F1 and audit axioms
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          lake env lean \
+            lean/RHLanz/P11ExactExponent.lean \
+            2>&1 | tee p11-lean.log
+
+          grep -Fq \
+            'RHLanz.p11_exact_exponent_identity' \
+            p11-lean.log
+
+          if grep -Eq \
+            'depends on axioms:.*sorryAx|uses sorry' \
+            p11-lean.log; then
+            echo "FAIL: sorryAx detected"
+            exit 1
+          fi
+
+          echo "P1.1-F1 compilation and axiom output: PASS"
+
+      - name: Upload verification log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rh-p11-lean-log
+          path: p11-lean.log
+          if-no-files-found: ignore
