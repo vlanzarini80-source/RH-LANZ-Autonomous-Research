@@ -1,0 +1,46 @@
+
+name: LNZ Grant Lean Audit
+
+on:
+  push:
+    branches:
+      - audit/grant-periodicity
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  grant-p0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lean and Mathlib
+        uses: leanprover/lean-action@v1
+        with:
+          auto-config: false
+          use-mathlib-cache: true
+          use-github-cache: false
+
+      - name: Compile source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake build GrantMode3
+          lake env lean GrantMode3.lean
+
+      - name: Check forbidden placeholders
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -nE '\b(sorry|admit)\b' GrantMode3.lean; then
+            echo "FORBIDDEN_PLACEHOLDER"
+            exit 1
+          fi
+
+          sha256sum GrantMode3.lean
+          echo "GRANT_P0_COMPILED"
