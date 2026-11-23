@@ -7,10 +7,10 @@ namespace LNZGrant
 The six-harmonic trigonometric mode M3
 from Grant, Section 15.4.
 
-The coefficients remain independent.
-No fitted values are assumed.
+All six coefficients are independent.
+No expected numerical results are assumed.
 -/
-def mode3
+noncomputable def mode3
     (c1 c2 c3 c4 c5 c6 : ℝ)
     (n : ℕ) : ℝ :=
   let x := (n : ℝ) * Real.pi / 2
@@ -22,8 +22,10 @@ def mode3
     + c6 * Real.sin (3 * x)
 
 /--
-Initial exact identity at n = 0.
-No expected numerical coefficient.
+Exact evaluation at n = 0.
+
+No fitted coefficients.
+No additional axioms.
 -/
 theorem mode3_zero
     (c1 c2 c3 c4 c5 c6 : ℝ) :
