@@ -25,10 +25,7 @@ theorem mode3_zero
       c1 + c3 + c5 := by
   simp [mode3]
 
-/--
-Four steps in the discrete index shift
-the fundamental angle by exactly 2*pi.
--/
+/-- Previously verified four-step angular shift. -/
 theorem mode3_angle_shift (n : ℕ) :
     ((n + 4 : ℕ) : ℝ) * Real.pi / 2 =
       (n : ℝ) * Real.pi / 2 +
@@ -36,7 +33,29 @@ theorem mode3_angle_shift (n : ℕ) :
   push_cast
   ring
 
+/--
+Sine is unchanged after an angular shift of 2*pi.
+No periodicity hypothesis is assumed.
+-/
+theorem sin_two_pi_shift (x : ℝ) :
+    Real.sin (x + 2 * Real.pi) =
+      Real.sin x := by
+  rw [Real.sin_add]
+  simp [Real.sin_two_pi, Real.cos_two_pi]
+
+/--
+Cosine is unchanged after an angular shift of 2*pi.
+No periodicity hypothesis is assumed.
+-/
+theorem cos_two_pi_shift (x : ℝ) :
+    Real.cos (x + 2 * Real.pi) =
+      Real.cos x := by
+  rw [Real.cos_add]
+  simp [Real.sin_two_pi, Real.cos_two_pi]
+
 #print axioms LNZGrant.mode3_zero
 #print axioms LNZGrant.mode3_angle_shift
+#print axioms LNZGrant.sin_two_pi_shift
+#print axioms LNZGrant.cos_two_pi_shift
 
 end LNZGrant
