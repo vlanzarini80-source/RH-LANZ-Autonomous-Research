@@ -5,12 +5,13 @@ namespace LNZGrant
 set_option maxHeartbeats 400000
 
 /-!
-GRANT-P2.3a
+GRANT-P2.4a
 
-Exact trigonometric periodicity.
+Exact periodicity.
 Infinite residue subsequences.
-Exact geometric coefficient reconstruction.
-Strict odd-subsequence separation.
+Exact geometric coefficients.
+Strict subsequence separation.
+Asymptotic incompatibility.
 -/
 
 noncomputable def mode3
@@ -22,7 +23,6 @@ noncomputable def mode3
     + c3 * Real.cos (2 * x)
     + c4 * Real.sin (2 * x)
     + c5 * Real.cos (3 * x)
-    + c6 * Real.sin (3 * x)
 
 /- GRANT-P0.3 -/
 
@@ -81,7 +81,7 @@ theorem mode3_period_four
   rw [h2, h3]
   simp only [sin_two_pi_shift, cos_two_pi_shift]
 
-/- GRANT-P2.1: residue one -/
+/- GRANT-P2.1 -/
 
 theorem grant_p2_1_mode3_one
     (c1 c2 c3 c4 c5 c6 : ℝ) :
@@ -105,8 +105,6 @@ theorem grant_p2_1_mode3_one
   rw [h2, h3]
   simp [Real.sin_add, Real.cos_add] <;> ring
 
-/- GRANT-P2.1: residue two -/
-
 theorem grant_p2_1_mode3_two
     (c1 c2 c3 c4 c5 c6 : ℝ) :
     mode3 c1 c2 c3 c4 c5 c6 2 =
@@ -126,8 +124,6 @@ theorem grant_p2_1_mode3_two
   rw [h3]
   simp [sin_two_pi_shift, cos_two_pi_shift,
     Real.sin_two_pi, Real.cos_two_pi] <;> ring
-
-/- GRANT-P2.1: residue three -/
 
 theorem grant_p2_1_mode3_three
     (c1 c2 c3 c4 c5 c6 : ℝ) :
@@ -155,7 +151,7 @@ theorem grant_p2_1_mode3_three
   simp only [sin_two_pi_shift, cos_two_pi_shift]
   simp [Real.sin_add, Real.cos_add] <;> ring
 
-/- GRANT-P2.2: periodicity by induction -/
+/- GRANT-P2.2 -/
 
 theorem grant_p2_2_period_iter
     (c1 c2 c3 c4 c5 c6 : ℝ)
@@ -231,7 +227,7 @@ theorem grant_p2_2_odd_gap
       grant_p2_2_residue_three]
   ring
 
-/- GRANT-P2.3a: geometric definitions -/
+/- GRANT-P2.3a -/
 
 noncomputable def grantQM
     (a b c : ℝ) : ℝ :=
@@ -262,8 +258,6 @@ noncomputable def grantC2 : ℝ :=
 
 noncomputable def grantC6 : ℝ :=
   (grantCHM1 - grantQM2) / 208
-
-/- Exact radical identities -/
 
 theorem grant_p2_3_sqrt6_sq :
     (Real.sqrt 6) ^ 2 = 6 := by
@@ -298,8 +292,6 @@ theorem grant_p2_3_sqrt_unique
   · linarith
   · linarith
 
-/- Exact geometric reconstruction -/
-
 theorem grant_p2_3_QM1_exact :
     grantQM1 = 13 * Real.sqrt 6 / 3 := by
   unfold grantQM1 grantQM
@@ -326,8 +318,6 @@ theorem grant_p2_3_LBM3_exact :
     grantLBM3 = 96 / 5 := by
   unfold grantLBM3 grantLBM
   nlinarith [grant_p2_3_sqrt6_sq]
-
-/- Derive coefficient signs -/
 
 theorem grant_p2_3_C2_pos :
     0 < grantC2 := by
@@ -359,8 +349,6 @@ theorem grant_p2_3_gap_nonzero :
     2 * (grantC2 - grantC6) ≠ 0 := by
   exact ne_of_gt grant_p2_3_gap_positive
 
-/- Bridge to verified infinite subsequences -/
-
 theorem grant_p2_3_physical_odd_gap
     (c1 c3 c4 c5 : ℝ)
     (k : ℕ) :
@@ -371,6 +359,72 @@ theorem grant_p2_3_physical_odd_gap
         (4 * k + 3) := by
   rw [grant_p2_2_odd_gap]
   exact grant_p2_3_gap_positive
+
+/- GRANT-P2.4a: asymptotic incompatibility -/
+
+theorem grant_p2_4a_gap_limit
+    (f g : ℕ → ℝ)
+    (a b : ℝ)
+    (hf : Filter.Tendsto f Filter.atTop
+      (nhds a))
+    (hg : Filter.Tendsto g Filter.atTop
+      (nhds b)) :
+    Filter.Tendsto
+      (fun k => f k - g k)
+      Filter.atTop
+      (nhds (a - b)) := by
+  exact hf.sub hg
+
+theorem grant_p2_4a_noncompensation
+    (f g : ℕ → ℝ)
+    (d : ℝ)
+    (hd : 0 < d)
+    (hgap : ∀ k : ℕ, f k - g k = d) :
+    ¬ ∃ L : ℝ,
+      Filter.Tendsto f Filter.atTop
+        (nhds L) ∧
+      Filter.Tendsto g Filter.atTop
+        (nhds L) := by
+  rintro ⟨L, hf, hg⟩
+  have hz :
+      Filter.Tendsto
+        (fun k => f k - g k)
+        Filter.atTop (nhds 0) := by
+    simpa only [sub_self] using hf.sub hg
+  have he :
+      (fun k => f k - g k) =
+        (fun _ : ℕ => d) := by
+    funext k
+    exact hgap k
+  rw [he] at hz
+  have hc :
+      Filter.Tendsto
+        (fun _ : ℕ => d)
+        Filter.atTop (nhds d) :=
+    tendsto_const_nhds
+  have hh : d = 0 :=
+    tendsto_nhds_unique hc hz
+  linarith
+
+theorem grant_p2_4a_mode3_no_common_limit
+    (c1 c3 c4 c5 : ℝ) :
+    ¬ ∃ L : ℝ,
+      Filter.Tendsto
+        (fun k : ℕ =>
+          mode3 c1 grantC2 c3 c4 c5 grantC6
+            (4 * k + 1))
+        Filter.atTop (nhds L) ∧
+      Filter.Tendsto
+        (fun k : ℕ =>
+          mode3 c1 grantC2 c3 c4 c5 grantC6
+            (4 * k + 3))
+        Filter.atTop (nhds L) := by
+  apply grant_p2_4a_noncompensation
+    _ _ (2 * (grantC2 - grantC6))
+    grant_p2_3_gap_positive
+  intro k
+  exact grant_p2_2_odd_gap
+    c1 grantC2 c3 c4 c5 grantC6 k
 
 /- Complete axiom audit -/
 
@@ -405,5 +459,9 @@ theorem grant_p2_3_physical_odd_gap
 #print axioms LNZGrant.grant_p2_3_gap_positive
 #print axioms LNZGrant.grant_p2_3_gap_nonzero
 #print axioms LNZGrant.grant_p2_3_physical_odd_gap
+
+#print axioms LNZGrant.grant_p2_4a_gap_limit
+#print axioms LNZGrant.grant_p2_4a_noncompensation
+#print axioms LNZGrant.grant_p2_4a_mode3_no_common_limit
 
 end LNZGrant
