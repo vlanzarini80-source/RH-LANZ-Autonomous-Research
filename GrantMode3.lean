@@ -1,11 +1,11 @@
-
 import Mathlib
 
 namespace LNZGrant
 
 /-!
-GRANT-P2.1
-Exact trigonometric residue evaluations.
+GRANT-P2.2
+Exact residue evaluations, infinite subsequences
+and symbolic odd-residue difference.
 -/
 
 noncomputable def mode3
@@ -150,7 +150,93 @@ theorem grant_p2_1_mode3_three
   simp only [sin_two_pi_shift, cos_two_pi_shift]
   simp [Real.sin_add, Real.cos_add] <;> ring
 
-/- Axiom audit -/
+/- GRANT-P2.2: periodicity by induction -/
+
+theorem grant_p2_2_period_iter
+    (c1 c2 c3 c4 c5 c6 : ℝ)
+    (r k : ℕ) :
+    mode3 c1 c2 c3 c4 c5 c6 (4 * k + r) =
+      mode3 c1 c2 c3 c4 c5 c6 r := by
+  induction k with
+  | zero =>
+      simp
+  | succ k ih =>
+      have h :
+          4 * (k + 1) + r =
+            (4 * k + r) + 4 := by
+        omega
+      change
+        mode3 c1 c2 c3 c4 c5 c6
+          (4 * (k + 1) + r) =
+        mode3 c1 c2 c3 c4 c5 c6 r
+      calc
+        mode3 c1 c2 c3 c4 c5 c6
+            (4 * (k + 1) + r) =
+          mode3 c1 c2 c3 c4 c5 c6
+            ((4 * k + r) + 4) := by
+              rw [h]
+        _ = mode3 c1 c2 c3 c4 c5 c6
+              (4 * k + r) :=
+            mode3_period_four
+              c1 c2 c3 c4 c5 c6
+              (4 * k + r)
+        _ = mode3 c1 c2 c3 c4 c5 c6 r :=
+            ih
+
+/- GRANT-P2.2: infinite residue zero -/
+
+theorem grant_p2_2_residue_zero
+    (c1 c2 c3 c4 c5 c6 : ℝ)
+    (k : ℕ) :
+    mode3 c1 c2 c3 c4 c5 c6 (4 * k) =
+      c1 + c3 + c5 := by
+  simpa only [Nat.add_zero, mode3_zero] using
+    (grant_p2_2_period_iter
+      c1 c2 c3 c4 c5 c6 0 k)
+
+/- GRANT-P2.2: infinite residue one -/
+
+theorem grant_p2_2_residue_one
+    (c1 c2 c3 c4 c5 c6 : ℝ)
+    (k : ℕ) :
+    mode3 c1 c2 c3 c4 c5 c6 (4 * k + 1) =
+      c2 - c3 - c6 := by
+  rw [grant_p2_2_period_iter,
+      grant_p2_1_mode3_one]
+
+/- GRANT-P2.2: infinite residue two -/
+
+theorem grant_p2_2_residue_two
+    (c1 c2 c3 c4 c5 c6 : ℝ)
+    (k : ℕ) :
+    mode3 c1 c2 c3 c4 c5 c6 (4 * k + 2) =
+      -c1 + c3 - c5 := by
+  rw [grant_p2_2_period_iter,
+      grant_p2_1_mode3_two]
+
+/- GRANT-P2.2: infinite residue three -/
+
+theorem grant_p2_2_residue_three
+    (c1 c2 c3 c4 c5 c6 : ℝ)
+    (k : ℕ) :
+    mode3 c1 c2 c3 c4 c5 c6 (4 * k + 3) =
+      -c2 - c3 + c6 := by
+  rw [grant_p2_2_period_iter,
+      grant_p2_1_mode3_three]
+
+/- GRANT-P2.2: exact odd-residue difference -/
+
+theorem grant_p2_2_odd_gap
+    (c1 c2 c3 c4 c5 c6 : ℝ)
+    (k : ℕ) :
+    mode3 c1 c2 c3 c4 c5 c6 (4 * k + 1) -
+      mode3 c1 c2 c3 c4 c5 c6 (4 * k + 3) =
+        2 * (c2 - c6) := by
+  rw [grant_p2_2_residue_one,
+      grant_p2_2_residue_three]
+  ring
+
+/- Complete axiom audit -/
 
 #print axioms LNZGrant.mode3_zero
 #print axioms LNZGrant.mode3_angle_shift
@@ -160,5 +246,12 @@ theorem grant_p2_1_mode3_three
 #print axioms LNZGrant.grant_p2_1_mode3_one
 #print axioms LNZGrant.grant_p2_1_mode3_two
 #print axioms LNZGrant.grant_p2_1_mode3_three
+
+#print axioms LNZGrant.grant_p2_2_period_iter
+#print axioms LNZGrant.grant_p2_2_residue_zero
+#print axioms LNZGrant.grant_p2_2_residue_one
+#print axioms LNZGrant.grant_p2_2_residue_two
+#print axioms LNZGrant.grant_p2_2_residue_three
+#print axioms LNZGrant.grant_p2_2_odd_gap
 
 end LNZGrant
