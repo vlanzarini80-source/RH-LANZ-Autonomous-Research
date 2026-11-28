@@ -1,3 +1,4 @@
+
 import Mathlib
 
 namespace LNZGrant
@@ -5,13 +6,10 @@ namespace LNZGrant
 set_option maxHeartbeats 400000
 
 /-!
-GRANT-P2.4a
-
-Exact periodicity.
-Infinite residue subsequences.
-Exact geometric coefficients.
-Strict subsequence separation.
-Asymptotic incompatibility.
+GRANT-P2.4a.1
+Restore complete six-term M3 definition.
+Preserve periodicity, residue identities,
+geometric coefficients and asymptotic audit.
 -/
 
 noncomputable def mode3
@@ -23,6 +21,7 @@ noncomputable def mode3
     + c3 * Real.cos (2 * x)
     + c4 * Real.sin (2 * x)
     + c5 * Real.cos (3 * x)
+    + c6 * Real.sin (3 * x)
 
 /- GRANT-P0.3 -/
 
@@ -360,7 +359,7 @@ theorem grant_p2_3_physical_odd_gap
   rw [grant_p2_2_odd_gap]
   exact grant_p2_3_gap_positive
 
-/- GRANT-P2.4a: asymptotic incompatibility -/
+/- GRANT-P2.4a -/
 
 theorem grant_p2_4a_gap_limit
     (f g : ℕ → ℝ)
